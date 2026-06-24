@@ -6,6 +6,7 @@ It shows:
 
 - an all-time word cloud
 - a daily trend chart for `Bombshell`, `Shocking`, and `Explosive`
+- an editable tracked-word list in the browser
 
 ## GitHub Pages setup
 
@@ -15,3 +16,7 @@ It shows:
 4. Go to `Actions`, choose `Update news word tracker`, and run it once.
 
 The workflow runs every day at 8:00 AM Australia/Brisbane time.
+
+## Tracked words
+
+The browser editor updates the chart immediately for the person viewing it. To change the words collected by the daily GitHub Action for everyone, update `tracked-words.json` in the repository.

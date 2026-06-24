@@ -4,8 +4,9 @@ const path = require("node:path");
 const SITE_URL = "https://www.news.com.au/";
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const DATA_FILE = path.join(PROJECT_ROOT, "data.json");
+const TRACKED_WORDS_FILE = path.join(PROJECT_ROOT, "tracked-words.json");
 const TIME_ZONE = "Australia/Brisbane";
-const TRACKED_WORDS = ["Bombshell", "Shocking", "Explosive"];
+const DEFAULT_TRACKED_WORDS = ["Bombshell", "Shocking", "Explosive"];
 
 const STOP_WORDS = new Set([
   "about", "after", "again", "against", "ago", "also", "and", "any", "are",
@@ -65,9 +66,19 @@ function countWords(words) {
   return counts;
 }
 
-function countTrackedWords(text) {
+async function readTrackedWords() {
+  try {
+    const words = JSON.parse(await fs.readFile(TRACKED_WORDS_FILE, "utf8"));
+    return [...new Set(words.map((word) => String(word).trim()).filter(Boolean))];
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    return DEFAULT_TRACKED_WORDS;
+  }
+}
+
+function countTrackedWords(text, trackedWords) {
   const counts = {};
-  for (const word of TRACKED_WORDS) {
+  for (const word of trackedWords) {
     counts[word] = text.match(new RegExp(`\\b${word}\\b`, "gi"))?.length ?? 0;
   }
   return counts;
@@ -78,7 +89,7 @@ async function readExistingData() {
     return JSON.parse(await fs.readFile(DATA_FILE, "utf8"));
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
-    return { siteUrl: SITE_URL, timeZone: TIME_ZONE, trackedWords: TRACKED_WORDS, runs: [], allTimeWordCounts: {} };
+    return { siteUrl: SITE_URL, timeZone: TIME_ZONE, trackedWords: DEFAULT_TRACKED_WORDS, runs: [], allTimeWordCounts: {} };
   }
 }
 
@@ -93,6 +104,7 @@ function rebuildAllTimeCounts(runs) {
 }
 
 async function main() {
+  const trackedWords = await readTrackedWords();
   const response = await fetch(SITE_URL, {
     headers: {
       accept: "text/html,application/xhtml+xml",
@@ -111,14 +123,14 @@ async function main() {
     collectedAt: new Date().toISOString(),
     sourceUrl: SITE_URL,
     totalWords: words.length,
-    trackedCounts: countTrackedWords(text),
+    trackedCounts: countTrackedWords(text, trackedWords),
     wordCounts: Object.fromEntries(Object.entries(wordCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 250))
   };
   const runs = [...existing.runs.filter((item) => item.date !== date), run].sort((a, b) => a.date.localeCompare(b.date));
   await fs.writeFile(DATA_FILE, `${JSON.stringify({
     siteUrl: SITE_URL,
     timeZone: TIME_ZONE,
-    trackedWords: TRACKED_WORDS,
+    trackedWords,
     runs,
     allTimeWordCounts: rebuildAllTimeCounts(runs)
   }, null, 2)}\n`);

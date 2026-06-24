@@ -5,165 +5,512 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>News Bombshell Tracker</title>
     <style>
-      * { box-sizing: border-box; }
+      :root {
+        color-scheme: light;
+        --ink: #15161c;
+        --muted: #68707f;
+        --line: rgba(115, 124, 140, .22);
+        --glass: rgba(255, 255, 255, .72);
+        --glass-strong: rgba(255, 255, 255, .88);
+        --shadow: 0 24px 70px rgba(29, 35, 48, .14);
+        --red: #e11652;
+        --orange: #ff6a00;
+        --teal: #00a8aa;
+        --green: #91c900;
+        --violet: #7320b8;
+        --gold: #f7b414;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
+        min-height: 100vh;
         margin: 0;
-        background: #f4f7fb;
-        color: #1b1d24;
+        color: var(--ink);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 12% 18%, rgba(225, 22, 82, .18), transparent 28%),
+          radial-gradient(circle at 84% 12%, rgba(0, 168, 170, .16), transparent 30%),
+          radial-gradient(circle at 72% 88%, rgba(247, 180, 20, .18), transparent 28%),
+          linear-gradient(135deg, #f8fbff 0%, #eef3f8 48%, #faf7f1 100%);
       }
-      header {
-        background: #fff;
-        border-bottom: 1px solid #d8dde5;
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image: linear-gradient(rgba(255,255,255,.42) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.42) 1px, transparent 1px);
+        background-size: 44px 44px;
+        mask-image: linear-gradient(to bottom, rgba(0,0,0,.65), transparent 70%);
       }
-      .topbar, main {
-        max-width: 1440px;
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        max-width: 1480px;
         margin: 0 auto;
-        padding: 18px 28px;
+        padding: 22px 28px 34px;
       }
-      .topbar {
+
+      header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 20px;
+        margin-bottom: 18px;
+        padding: 14px 18px;
+        border: 1px solid rgba(255,255,255,.72);
+        border-radius: 18px;
+        background: rgba(255,255,255,.58);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(22px) saturate(1.45);
       }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 14px;
+      }
+
+      .brand-logo {
+        width: 228px;
+        max-width: 46vw;
+        height: auto;
+        display: block;
+      }
+
+      .brand-copy {
+        min-width: 0;
+        padding-left: 14px;
+        border-left: 1px solid var(--line);
+      }
+
       h1 {
         margin: 0;
-        font-size: 22px;
+        font-size: 21px;
+        line-height: 1.15;
         letter-spacing: 0;
       }
+
+      .subline {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
       .meta {
         display: flex;
         flex-wrap: wrap;
-        gap: 14px;
-        color: #6b7280;
+        justify-content: flex-end;
+        gap: 10px;
+        color: var(--muted);
         font-size: 13px;
       }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        padding: 6px 10px;
+        border: 1px solid rgba(255,255,255,.72);
+        border-radius: 999px;
+        background: rgba(255,255,255,.6);
+        box-shadow: 0 8px 22px rgba(29, 35, 48, .08);
+        white-space: nowrap;
+      }
+
       .summary {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 12px;
-        margin: 6px 0 18px;
+        margin-bottom: 16px;
       }
-      .metric, section {
-        background: #fff;
-        border: 1px solid #d8dde5;
-        border-radius: 8px;
+
+      .metric,
+      section,
+      .word-editor {
+        border: 1px solid rgba(255,255,255,.76);
+        border-radius: 18px;
+        background: var(--glass);
+        box-shadow: 0 18px 48px rgba(29, 35, 48, .1);
+        backdrop-filter: blur(24px) saturate(1.35);
       }
+
       .metric {
-        padding: 14px 16px;
+        min-width: 0;
+        padding: 16px;
       }
+
       .metric span {
         display: block;
-        margin-bottom: 6px;
-        color: #6b7280;
+        margin-bottom: 7px;
+        color: var(--muted);
         font-size: 12px;
       }
+
       .metric strong {
         display: block;
         overflow-wrap: anywhere;
-        font-size: 24px;
-        line-height: 1.15;
+        font-size: 26px;
+        line-height: 1.1;
       }
+
+      .controls-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .word-editor {
+        min-width: 0;
+        padding: 14px;
+      }
+
+      .editor-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      h2,
+      h3 {
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        font-size: 16px;
+      }
+
+      h3 {
+        font-size: 14px;
+      }
+
+      .word-form {
+        display: flex;
+        gap: 8px;
+      }
+
+      .word-form input {
+        width: min(260px, 42vw);
+        min-height: 38px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255,255,255,.68);
+        color: var(--ink);
+        outline: none;
+      }
+
+      .word-form input:focus {
+        border-color: rgba(0, 168, 170, .54);
+        box-shadow: 0 0 0 4px rgba(0, 168, 170, .12);
+      }
+
+      .btn {
+        min-height: 38px;
+        border: 1px solid rgba(255,255,255,.78);
+        border-radius: 12px;
+        background: rgba(255,255,255,.76);
+        color: var(--ink);
+        box-shadow: 0 10px 24px rgba(29, 35, 48, .1);
+      }
+
+      .btn.primary {
+        padding: 8px 14px;
+        background: linear-gradient(135deg, rgba(21,22,28,.96), rgba(58,62,73,.92));
+        color: #fff;
+      }
+
+      .btn.icon {
+        width: 38px;
+        padding: 0;
+      }
+
+      .word-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .word-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 34px;
+        padding: 5px 7px 5px 10px;
+        border: 1px solid rgba(255,255,255,.78);
+        border-radius: 999px;
+        background: rgba(255,255,255,.66);
+        box-shadow: 0 8px 18px rgba(29, 35, 48, .08);
+      }
+
+      .word-chip input {
+        width: 112px;
+        border: 0;
+        background: transparent;
+        color: var(--ink);
+        outline: none;
+      }
+
+      .word-chip button {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(21,22,28,.08);
+        color: #3a3f4a;
+      }
+
       .layout {
         display: grid;
         grid-template-columns: minmax(340px, .95fr) minmax(420px, 1.25fr);
-        gap: 18px;
+        gap: 16px;
+        align-items: stretch;
       }
+
       section {
         min-width: 0;
         padding: 18px;
       }
+
       .section-head {
         display: flex;
+        align-items: flex-start;
         justify-content: space-between;
         gap: 16px;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
       }
-      h2 {
-        margin: 0;
-        font-size: 16px;
-        letter-spacing: 0;
-      }
+
       .hint {
-        color: #6b7280;
+        color: var(--muted);
         font-size: 12px;
+        line-height: 1.35;
         text-align: right;
       }
+
+      .canvas-wrap {
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,.8);
+        border-radius: 16px;
+        background: rgba(255,255,255,.52);
+      }
+
       canvas {
         display: block;
         width: 100%;
         height: 560px;
-        border-radius: 6px;
       }
-      #wordCloud {
-        border: 1px solid #edf0f5;
-        background: #fbfcff;
-      }
+
       .legend {
         display: flex;
         flex-wrap: wrap;
         gap: 10px 16px;
         margin-top: 12px;
-        color: #6b7280;
+        color: var(--muted);
         font-size: 13px;
       }
+
       .legend-item {
         display: inline-flex;
         align-items: center;
         gap: 7px;
       }
+
       .swatch {
         width: 12px;
         height: 12px;
         border-radius: 50%;
       }
-      @media (max-width: 980px) {
-        .topbar { align-items: flex-start; flex-direction: column; }
-        .summary, .layout { grid-template-columns: 1fr; }
-        canvas { height: 420px; }
+
+      @media (max-width: 1100px) {
+        header,
+        .controls-row {
+          grid-template-columns: 1fr;
+        }
+
+        header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .meta {
+          justify-content: flex-start;
+        }
+
+        .summary,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        canvas {
+          height: 430px;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .shell {
+          padding: 14px;
+        }
+
+        header,
+        .metric,
+        section,
+        .word-editor {
+          border-radius: 14px;
+        }
+
+        .brand {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .brand-copy {
+          padding-left: 0;
+          border-left: 0;
+        }
+
+        .brand-logo {
+          width: 210px;
+          max-width: 76vw;
+        }
+
+        .editor-top,
+        .word-form {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .word-form input {
+          width: 100%;
+        }
       }
     </style>
   </head>
   <body>
-    <header>
-      <div class="topbar">
-        <h1>news.com.au word tracker</h1>
-        <div class="meta">
-          <span id="siteUrl">https://www.news.com.au/</span>
-          <span id="lastRun">Waiting for data</span>
-          <span>Daily at 8:00 AM Brisbane</span>
+    <div class="shell">
+      <header>
+        <div class="brand">
+          <img class="brand-logo" src="assets/news-bombshell-logo.png" alt="News Bombshell">
+          <div class="brand-copy">
+            <h1>news.com.au word tracker</h1>
+            <div class="subline">Not all news. Just bombshells.</div>
+          </div>
         </div>
-      </div>
-    </header>
-    <main>
-      <div class="summary">
-        <div class="metric"><span>Days tracked</span><strong id="daysTracked">0</strong></div>
-        <div class="metric"><span>Total captured words</span><strong id="totalWords">0</strong></div>
-        <div class="metric"><span>Top all-time word</span><strong id="topWord">-</strong></div>
-        <div class="metric"><span>Tracked words</span><strong>3</strong></div>
-      </div>
-      <div class="layout">
-        <section>
-          <div class="section-head">
-            <h2>All-time significant words</h2>
-            <div class="hint">Since collection started</div>
+        <div class="meta">
+          <span class="pill" id="siteUrl">https://www.news.com.au/</span>
+          <span class="pill" id="lastRun">Waiting for data</span>
+          <span class="pill">Daily at 8:00 AM Brisbane</span>
+        </div>
+      </header>
+
+      <main>
+        <div class="summary">
+          <div class="metric"><span>Days tracked</span><strong id="daysTracked">0</strong></div>
+          <div class="metric"><span>Total captured words</span><strong id="totalWords">0</strong></div>
+          <div class="metric"><span>Top all-time word</span><strong id="topWord">-</strong></div>
+          <div class="metric"><span>Tracked words</span><strong id="trackedCount">0</strong></div>
+        </div>
+
+        <div class="controls-row">
+          <div class="word-editor">
+            <div class="editor-top">
+              <h3>Tracked words</h3>
+              <form class="word-form" id="wordForm">
+                <input id="wordInput" type="text" autocomplete="off" placeholder="Add a word">
+                <button class="btn primary" type="submit">Add</button>
+                <button class="btn" id="copyConfig" type="button">Copy config</button>
+                <button class="btn icon" id="resetWords" type="button" title="Reset words" aria-label="Reset words">↺</button>
+              </form>
+            </div>
+            <div class="word-list" id="wordList"></div>
           </div>
-          <canvas id="wordCloud"></canvas>
-        </section>
-        <section>
-          <div class="section-head">
-            <h2>Daily prevalence</h2>
-            <div class="hint">Word count per day</div>
-          </div>
-          <canvas id="trendChart"></canvas>
-          <div class="legend" id="legend"></div>
-        </section>
-      </div>
-    </main>
+        </div>
+
+        <div class="layout">
+          <section>
+            <div class="section-head">
+              <h2>All-time significant words</h2>
+              <div class="hint">Since collection started</div>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="wordCloud"></canvas>
+            </div>
+          </section>
+
+          <section>
+            <div class="section-head">
+              <h2>Daily prevalence</h2>
+              <div class="hint">Word count per day</div>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="trendChart"></canvas>
+            </div>
+            <div class="legend" id="legend"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+
     <script>
-      const colors = { Bombshell: "#c7342d", Shocking: "#087f8c", Explosive: "#9a6b00" };
+      const defaultColors = ["#e11652", "#00a8aa", "#ff6a00", "#7320b8", "#91c900", "#f7b414", "#3b82f6", "#111827"];
       const formatNumber = new Intl.NumberFormat("en-AU");
+      const storageKey = "news-bombshell-tracked-words";
+      let currentData = null;
+      let defaultTrackedWords = ["Bombshell", "Shocking", "Explosive"];
+      let trackedWords = [...defaultTrackedWords];
+
+      function colorForWord(word, index) {
+        let hash = 0;
+        for (const char of word) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+        return defaultColors[(hash + index) % defaultColors.length];
+      }
+
+      function normaliseWords(words) {
+        const seen = new Set();
+        const clean = [];
+        for (const raw of words) {
+          const word = String(raw).trim();
+          const key = word.toLowerCase();
+          if (!word || seen.has(key)) continue;
+          seen.add(key);
+          clean.push(word);
+        }
+        return clean;
+      }
+
+      function loadStoredWords() {
+        try {
+          return normaliseWords(JSON.parse(localStorage.getItem(storageKey) || "[]"));
+        } catch {
+          return [];
+        }
+      }
+
+      function saveWords(words) {
+        trackedWords = normaliseWords(words);
+        localStorage.setItem(storageKey, JSON.stringify(trackedWords));
+        renderWordEditor();
+        renderDashboard();
+      }
 
       function fitCanvas(canvas) {
         const ratio = window.devicePixelRatio || 1;
@@ -178,7 +525,7 @@
       function drawEmpty(canvas, message) {
         const { ctx, width, height } = fitCanvas(canvas);
         ctx.clearRect(0, 0, width, height);
-        ctx.fillStyle = "#6b7280";
+        ctx.fillStyle = "#68707f";
         ctx.font = "14px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(message, width / 2, height / 2);
@@ -186,39 +533,44 @@
 
       function drawWordCloud(data) {
         const canvas = document.getElementById("wordCloud");
-        const entries = Object.entries(data.allTimeWordCounts || {}).slice(0, 80);
+        const entries = Object.entries(data.allTimeWordCounts || {}).slice(0, 90);
         if (!entries.length) return drawEmpty(canvas, "No words collected yet.");
         const { ctx, width, height } = fitCanvas(canvas);
         ctx.clearRect(0, 0, width, height);
-        ctx.fillStyle = "#fbfcff";
+        ctx.fillStyle = "rgba(255,255,255,.45)";
         ctx.fillRect(0, 0, width, height);
         const max = entries[0][1];
-        const palette = ["#1b1d24", "#c7342d", "#087f8c", "#475569", "#9a6b00", "#334155"];
         const placed = [];
         const centerX = width / 2;
         const centerY = height / 2;
         const hits = (box) => placed.some((item) => box.x < item.x + item.w && box.x + box.w > item.x && box.y < item.y + item.h && box.y + box.h > item.y);
         entries.forEach(([word, count], index) => {
-          const size = Math.round(14 + (count / max) * 42);
-          ctx.font = `700 ${size}px system-ui, sans-serif`;
-          const w = ctx.measureText(word).width + 14;
-          const h = size + 10;
+          const size = Math.round(14 + (count / max) * 46);
+          ctx.font = `800 ${size}px system-ui, sans-serif`;
+          const boxWidth = ctx.measureText(word).width + 14;
+          const boxHeight = size + 10;
           let box = null;
-          for (let step = 0; step < 900; step++) {
+          for (let step = 0; step < 1000; step++) {
             const angle = step * .48;
-            const radius = 5 + step * .42;
-            const candidate = { x: centerX + Math.cos(angle) * radius - w / 2, y: centerY + Math.sin(angle) * radius - h / 2, w, h };
-            if (candidate.x > 8 && candidate.y > 8 && candidate.x + w < width - 8 && candidate.y + h < height - 8 && !hits(candidate)) {
+            const radius = 5 + step * .43;
+            const candidate = { x: centerX + Math.cos(angle) * radius - boxWidth / 2, y: centerY + Math.sin(angle) * radius - boxHeight / 2, w: boxWidth, h: boxHeight };
+            if (candidate.x > 8 && candidate.y > 8 && candidate.x + boxWidth < width - 8 && candidate.y + boxHeight < height - 8 && !hits(candidate)) {
               box = candidate;
               break;
             }
           }
           if (!box) return;
           placed.push(box);
-          ctx.fillStyle = palette[index % palette.length];
+          ctx.fillStyle = colorForWord(word, index);
           ctx.textBaseline = "top";
           ctx.fillText(word, box.x + 7, box.y + 5);
         });
+      }
+
+      function runCountForWord(run, word) {
+        if (run.trackedCounts && Number.isFinite(run.trackedCounts[word])) return run.trackedCounts[word];
+        const lowerCounts = Object.fromEntries(Object.entries(run.wordCounts || {}).map(([key, value]) => [key.toLowerCase(), value]));
+        return lowerCounts[word.toLowerCase()] || 0;
       }
 
       function drawTrendChart(data) {
@@ -229,17 +581,17 @@
         const margin = { top: 24, right: 24, bottom: 58, left: 58 };
         const plotWidth = width - margin.left - margin.right;
         const plotHeight = height - margin.top - margin.bottom;
-        const words = data.trackedWords || ["Bombshell", "Shocking", "Explosive"];
-        const maxValue = Math.max(1, ...runs.flatMap((run) => words.map((word) => run.trackedCounts?.[word] || 0)));
+        const maxValue = Math.max(1, ...runs.flatMap((run) => trackedWords.map((word) => runCountForWord(run, word))));
         const yMax = Math.max(2, Math.ceil(maxValue * 1.2));
         const xFor = (index) => runs.length === 1 ? margin.left + plotWidth / 2 : margin.left + index / (runs.length - 1) * plotWidth;
         const yFor = (value) => margin.top + plotHeight - value / yMax * plotHeight;
         ctx.clearRect(0, 0, width, height);
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = "rgba(255,255,255,.45)";
         ctx.fillRect(0, 0, width, height);
-        ctx.strokeStyle = "#d8dde5";
+        ctx.strokeStyle = "rgba(104,112,127,.26)";
+        ctx.lineWidth = 1;
         ctx.font = "12px system-ui, sans-serif";
-        ctx.fillStyle = "#6b7280";
+        ctx.fillStyle = "#68707f";
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
         for (let i = 0; i <= 4; i++) {
@@ -251,7 +603,7 @@
           ctx.stroke();
           ctx.fillText(value, margin.left - 10, y);
         }
-        ctx.strokeStyle = "#1b1d24";
+        ctx.strokeStyle = "#15161c";
         ctx.beginPath();
         ctx.moveTo(margin.left, margin.top);
         ctx.lineTo(margin.left, margin.top + plotHeight);
@@ -262,23 +614,35 @@
         runs.forEach((run, index) => {
           if (runs.length <= 12 || index % Math.ceil(runs.length / 8) === 0) ctx.fillText(run.date.slice(5), xFor(index), margin.top + plotHeight + 14);
         });
-        words.forEach((word) => {
-          ctx.strokeStyle = colors[word] || "#475569";
-          ctx.fillStyle = colors[word] || "#475569";
+        trackedWords.forEach((word, wordIndex) => {
+          const color = colorForWord(word, wordIndex);
+          ctx.strokeStyle = color;
+          ctx.fillStyle = color;
           ctx.lineWidth = 3;
           ctx.beginPath();
           runs.forEach((run, index) => {
             const x = xFor(index);
-            const y = yFor(run.trackedCounts?.[word] || 0);
+            const y = yFor(runCountForWord(run, word));
             if (index === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
           });
           ctx.stroke();
           runs.forEach((run, index) => {
             ctx.beginPath();
-            ctx.arc(xFor(index), yFor(run.trackedCounts?.[word] || 0), 4, 0, Math.PI * 2);
+            ctx.arc(xFor(index), yFor(runCountForWord(run, word)), 4, 0, Math.PI * 2);
             ctx.fill();
           });
+        });
+      }
+
+      function renderLegend() {
+        const legend = document.getElementById("legend");
+        legend.innerHTML = "";
+        trackedWords.forEach((word, index) => {
+          const item = document.createElement("span");
+          item.className = "legend-item";
+          item.innerHTML = `<span class="swatch" style="background:${colorForWord(word, index)}"></span>${word}`;
+          legend.appendChild(item);
         });
       }
 
@@ -290,34 +654,87 @@
         document.getElementById("totalWords").textContent = formatNumber.format(runs.reduce((sum, run) => sum + (run.totalWords || 0), 0));
         document.getElementById("topWord").textContent = allTime.length ? `${allTime[0][0]} (${allTime[0][1]})` : "-";
         document.getElementById("lastRun").textContent = runs.length ? `Last run ${runs[runs.length - 1].date}` : "Waiting for data";
-        const legend = document.getElementById("legend");
-        legend.innerHTML = "";
-        (data.trackedWords || []).forEach((word) => {
-          const item = document.createElement("span");
-          item.className = "legend-item";
-          item.innerHTML = `<span class="swatch" style="background:${colors[word] || "#475569"}"></span>${word}`;
-          legend.appendChild(item);
+        document.getElementById("trackedCount").textContent = formatNumber.format(trackedWords.length);
+      }
+
+      function renderWordEditor() {
+        const list = document.getElementById("wordList");
+        list.innerHTML = "";
+        trackedWords.forEach((word, index) => {
+          const chip = document.createElement("span");
+          chip.className = "word-chip";
+          const input = document.createElement("input");
+          input.value = word;
+          input.setAttribute("aria-label", `Tracked word ${index + 1}`);
+          input.addEventListener("change", () => {
+            const next = [...trackedWords];
+            next[index] = input.value;
+            saveWords(next);
+          });
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.setAttribute("aria-label", `Remove ${word}`);
+          remove.textContent = "×";
+          remove.addEventListener("click", () => saveWords(trackedWords.filter((_, itemIndex) => itemIndex !== index)));
+          chip.append(input, remove);
+          list.appendChild(chip);
         });
       }
 
-      async function loadDashboard() {
-        try {
-          const response = await fetch(`data.json?ts=${Date.now()}`);
-          if (!response.ok) throw new Error("No data");
-          const data = await response.json();
-          updateSummary(data);
-          drawWordCloud(data);
-          drawTrendChart(data);
-          window.addEventListener("resize", () => {
-            drawWordCloud(data);
-            drawTrendChart(data);
-          }, { passive: true });
-        } catch {
-          drawEmpty(document.getElementById("wordCloud"), "No data file found.");
-          drawEmpty(document.getElementById("trendChart"), "No data file found.");
-        }
+      function renderDashboard() {
+        if (!currentData) return;
+        updateSummary(currentData);
+        drawWordCloud(currentData);
+        drawTrendChart(currentData);
+        renderLegend();
       }
 
+      async function loadDashboard() {
+        const [dataResponse, wordsResponse] = await Promise.allSettled([
+          fetch(`data.json?ts=${Date.now()}`),
+          fetch(`tracked-words.json?ts=${Date.now()}`)
+        ]);
+        if (wordsResponse.status === "fulfilled" && wordsResponse.value.ok) {
+          defaultTrackedWords = normaliseWords(await wordsResponse.value.json());
+        }
+        const stored = loadStoredWords();
+        trackedWords = stored.length ? stored : [...defaultTrackedWords];
+        renderWordEditor();
+        if (dataResponse.status !== "fulfilled" || !dataResponse.value.ok) {
+          drawEmpty(document.getElementById("wordCloud"), "No data file found.");
+          drawEmpty(document.getElementById("trendChart"), "No data file found.");
+          return;
+        }
+        currentData = await dataResponse.value.json();
+        renderDashboard();
+      }
+
+      document.getElementById("wordForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const input = document.getElementById("wordInput");
+        saveWords([...trackedWords, input.value]);
+        input.value = "";
+        input.focus();
+      });
+
+      document.getElementById("resetWords").addEventListener("click", () => {
+        localStorage.removeItem(storageKey);
+        trackedWords = [...defaultTrackedWords];
+        renderWordEditor();
+        renderDashboard();
+      });
+
+      document.getElementById("copyConfig").addEventListener("click", async () => {
+        const config = `${JSON.stringify(trackedWords, null, 2)}\n`;
+        try {
+          await navigator.clipboard.writeText(config);
+          alert("Copied tracked-words.json");
+        } catch {
+          alert(config);
+        }
+      });
+
+      window.addEventListener("resize", () => renderDashboard(), { passive: true });
       loadDashboard();
     </script>
   </body>

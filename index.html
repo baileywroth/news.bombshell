@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>News Bombshell Tracker</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #f4f7fb;
+        color: #1b1d24;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      header {
+        background: #fff;
+        border-bottom: 1px solid #d8dde5;
+      }
+      .topbar, main {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 18px 28px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: 0;
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        color: #6b7280;
+        font-size: 13px;
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin: 6px 0 18px;
+      }
+      .metric, section {
+        background: #fff;
+        border: 1px solid #d8dde5;
+        border-radius: 8px;
+      }
+      .metric {
+        padding: 14px 16px;
+      }
+      .metric span {
+        display: block;
+        margin-bottom: 6px;
+        color: #6b7280;
+        font-size: 12px;
+      }
+      .metric strong {
+        display: block;
+        overflow-wrap: anywhere;
+        font-size: 24px;
+        line-height: 1.15;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(340px, .95fr) minmax(420px, 1.25fr);
+        gap: 18px;
+      }
+      section {
+        min-width: 0;
+        padding: 18px;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+      h2 {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: 0;
+      }
+      .hint {
+        color: #6b7280;
+        font-size: 12px;
+        text-align: right;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 560px;
+        border-radius: 6px;
+      }
+      #wordCloud {
+        border: 1px solid #edf0f5;
+        background: #fbfcff;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        margin-top: 12px;
+        color: #6b7280;
+        font-size: 13px;
+      }
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+      @media (max-width: 980px) {
+        .topbar { align-items: flex-start; flex-direction: column; }
+        .summary, .layout { grid-template-columns: 1fr; }
+        canvas { height: 420px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="topbar">
+        <h1>news.com.au word tracker</h1>
+        <div class="meta">
+          <span id="siteUrl">https://www.news.com.au/</span>
+          <span id="lastRun">Waiting for data</span>
+          <span>Daily at 8:00 AM Brisbane</span>
+        </div>
+      </div>
+    </header>
+    <main>
+      <div class="summary">
+        <div class="metric"><span>Days tracked</span><strong id="daysTracked">0</strong></div>
+        <div class="metric"><span>Total captured words</span><strong id="totalWords">0</strong></div>
+        <div class="metric"><span>Top all-time word</span><strong id="topWord">-</strong></div>
+        <div class="metric"><span>Tracked words</span><strong>3</strong></div>
+      </div>
+      <div class="layout">
+        <section>
+          <div class="section-head">
+            <h2>All-time significant words</h2>
+            <div class="hint">Since collection started</div>
+          </div>
+          <canvas id="wordCloud"></canvas>
+        </section>
+        <section>
+          <div class="section-head">
+            <h2>Daily prevalence</h2>
+            <div class="hint">Word count per day</div>
+          </div>
+          <canvas id="trendChart"></canvas>
+          <div class="legend" id="legend"></div>
+        </section>
+      </div>
+    </main>
+    <script>
+      const colors = { Bombshell: "#c7342d", Shocking: "#087f8c", Explosive: "#9a6b00" };
+      const formatNumber = new Intl.NumberFormat("en-AU");
+
+      function fitCanvas(canvas) {
+        const ratio = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.max(1, Math.round(rect.width * ratio));
+        canvas.height = Math.max(1, Math.round(rect.height * ratio));
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        return { ctx, width: rect.width, height: rect.height };
+      }
+
+      function drawEmpty(canvas, message) {
+        const { ctx, width, height } = fitCanvas(canvas);
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "#6b7280";
+        ctx.font = "14px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(message, width / 2, height / 2);
+      }
+
+      function drawWordCloud(data) {
+        const canvas = document.getElementById("wordCloud");
+        const entries = Object.entries(data.allTimeWordCounts || {}).slice(0, 80);
+        if (!entries.length) return drawEmpty(canvas, "No words collected yet.");
+        const { ctx, width, height } = fitCanvas(canvas);
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "#fbfcff";
+        ctx.fillRect(0, 0, width, height);
+        const max = entries[0][1];
+        const palette = ["#1b1d24", "#c7342d", "#087f8c", "#475569", "#9a6b00", "#334155"];
+        const placed = [];
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const hits = (box) => placed.some((item) => box.x < item.x + item.w && box.x + box.w > item.x && box.y < item.y + item.h && box.y + box.h > item.y);
+        entries.forEach(([word, count], index) => {
+          const size = Math.round(14 + (count / max) * 42);
+          ctx.font = `700 ${size}px system-ui, sans-serif`;
+          const w = ctx.measureText(word).width + 14;
+          const h = size + 10;
+          let box = null;
+          for (let step = 0; step < 900; step++) {
+            const angle = step * .48;
+            const radius = 5 + step * .42;
+            const candidate = { x: centerX + Math.cos(angle) * radius - w / 2, y: centerY + Math.sin(angle) * radius - h / 2, w, h };
+            if (candidate.x > 8 && candidate.y > 8 && candidate.x + w < width - 8 && candidate.y + h < height - 8 && !hits(candidate)) {
+              box = candidate;
+              break;
+            }
+          }
+          if (!box) return;
+          placed.push(box);
+          ctx.fillStyle = palette[index % palette.length];
+          ctx.textBaseline = "top";
+          ctx.fillText(word, box.x + 7, box.y + 5);
+        });
+      }
+
+      function drawTrendChart(data) {
+        const canvas = document.getElementById("trendChart");
+        const runs = data.runs || [];
+        if (!runs.length) return drawEmpty(canvas, "No trend data collected yet.");
+        const { ctx, width, height } = fitCanvas(canvas);
+        const margin = { top: 24, right: 24, bottom: 58, left: 58 };
+        const plotWidth = width - margin.left - margin.right;
+        const plotHeight = height - margin.top - margin.bottom;
+        const words = data.trackedWords || ["Bombshell", "Shocking", "Explosive"];
+        const maxValue = Math.max(1, ...runs.flatMap((run) => words.map((word) => run.trackedCounts?.[word] || 0)));
+        const yMax = Math.max(2, Math.ceil(maxValue * 1.2));
+        const xFor = (index) => runs.length === 1 ? margin.left + plotWidth / 2 : margin.left + index / (runs.length - 1) * plotWidth;
+        const yFor = (value) => margin.top + plotHeight - value / yMax * plotHeight;
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = "#d8dde5";
+        ctx.font = "12px system-ui, sans-serif";
+        ctx.fillStyle = "#6b7280";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        for (let i = 0; i <= 4; i++) {
+          const value = Math.round(yMax / 4 * i);
+          const y = yFor(value);
+          ctx.beginPath();
+          ctx.moveTo(margin.left, y);
+          ctx.lineTo(width - margin.right, y);
+          ctx.stroke();
+          ctx.fillText(value, margin.left - 10, y);
+        }
+        ctx.strokeStyle = "#1b1d24";
+        ctx.beginPath();
+        ctx.moveTo(margin.left, margin.top);
+        ctx.lineTo(margin.left, margin.top + plotHeight);
+        ctx.lineTo(width - margin.right, margin.top + plotHeight);
+        ctx.stroke();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        runs.forEach((run, index) => {
+          if (runs.length <= 12 || index % Math.ceil(runs.length / 8) === 0) ctx.fillText(run.date.slice(5), xFor(index), margin.top + plotHeight + 14);
+        });
+        words.forEach((word) => {
+          ctx.strokeStyle = colors[word] || "#475569";
+          ctx.fillStyle = colors[word] || "#475569";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          runs.forEach((run, index) => {
+            const x = xFor(index);
+            const y = yFor(run.trackedCounts?.[word] || 0);
+            if (index === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+          runs.forEach((run, index) => {
+            ctx.beginPath();
+            ctx.arc(xFor(index), yFor(run.trackedCounts?.[word] || 0), 4, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        });
+      }
+
+      function updateSummary(data) {
+        const runs = data.runs || [];
+        const allTime = Object.entries(data.allTimeWordCounts || {});
+        document.getElementById("siteUrl").textContent = data.siteUrl || "https://www.news.com.au/";
+        document.getElementById("daysTracked").textContent = formatNumber.format(runs.length);
+        document.getElementById("totalWords").textContent = formatNumber.format(runs.reduce((sum, run) => sum + (run.totalWords || 0), 0));
+        document.getElementById("topWord").textContent = allTime.length ? `${allTime[0][0]} (${allTime[0][1]})` : "-";
+        document.getElementById("lastRun").textContent = runs.length ? `Last run ${runs[runs.length - 1].date}` : "Waiting for data";
+        const legend = document.getElementById("legend");
+        legend.innerHTML = "";
+        (data.trackedWords || []).forEach((word) => {
+          const item = document.createElement("span");
+          item.className = "legend-item";
+          item.innerHTML = `<span class="swatch" style="background:${colors[word] || "#475569"}"></span>${word}`;
+          legend.appendChild(item);
+        });
+      }
+
+      async function loadDashboard() {
+        try {
+          const response = await fetch(`data.json?ts=${Date.now()}`);
+          if (!response.ok) throw new Error("No data");
+          const data = await response.json();
+          updateSummary(data);
+          drawWordCloud(data);
+          drawTrendChart(data);
+          window.addEventListener("resize", () => {
+            drawWordCloud(data);
+            drawTrendChart(data);
+          }, { passive: true });
+        } catch {
+          drawEmpty(document.getElementById("wordCloud"), "No data file found.");
+          drawEmpty(document.getElementById("trendChart"), "No data file found.");
+        }
+      }
+
+      loadDashboard();
+    </script>
+  </body>
+</html>

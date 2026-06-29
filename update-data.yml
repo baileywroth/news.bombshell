@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  collect:
+  publish:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -24,12 +24,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
-      - name: Codex Action
-        uses: icoretech/codex-action@v0.9.12
-
-      - name: Set up Pages
-        uses: actions/configure-pages@v5
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -44,6 +38,9 @@ jobs:
         with:
           commit_message: "Update news word tracker data"
           file_pattern: data.json
+
+      - name: Set up Pages
+        uses: actions/configure-pages@v5
 
       - name: Upload site
         uses: actions/upload-pages-artifact@v3

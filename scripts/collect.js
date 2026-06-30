@@ -41,12 +41,20 @@ function decodeEntities(html) {
     .replace(/&gt;/g, " ");
 }
 
+function extractVisibleHtml(html) {
+  const mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+  const articleMatch = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
+  const bodyMatch = html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
+  const source = mainMatch?.[1] ?? articleMatch?.[1] ?? bodyMatch?.[1] ?? html;
+  return source
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<(script|style|noscript|svg|template|iframe|canvas|form|nav|footer|aside|header)\b[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<(script|style|noscript|svg|template|iframe|canvas|form|nav|footer|aside|header)\b[^>]*\/>/gi, " ");
+}
+
 function htmlToText(html) {
   return decodeEntities(
-    html
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    extractVisibleHtml(html)
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
   );
@@ -93,6 +101,23 @@ async function readExistingData() {
   }
 }
 
+async function loadSourceHtml() {
+  try {
+    const response = await fetch(SITE_URL, {
+      headers: {
+        accept: "text/html,application/xhtml+xml",
+        "user-agent": "Mozilla/5.0 news-word-tracker/1.0"
+      }
+    });
+    if (!response.ok) throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
+    return await response.text();
+  } catch (error) {
+    const fallbackPath = process.env.NEWS_COM_AU_HTML_FILE;
+    if (!fallbackPath) throw error;
+    return await fs.readFile(fallbackPath, "utf8");
+  }
+}
+
 function rebuildAllTimeCounts(runs) {
   const totals = {};
   for (const run of runs) {
@@ -105,15 +130,7 @@ function rebuildAllTimeCounts(runs) {
 
 async function main() {
   const trackedWords = await readTrackedWords();
-  const response = await fetch(SITE_URL, {
-    headers: {
-      accept: "text/html,application/xhtml+xml",
-      "user-agent": "Mozilla/5.0 news-word-tracker/1.0"
-    }
-  });
-  if (!response.ok) throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
-
-  const text = htmlToText(await response.text());
+  const text = htmlToText(await loadSourceHtml());
   const words = tokenize(text);
   const date = todayInTimeZone();
   const existing = await readExistingData();

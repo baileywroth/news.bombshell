@@ -7,6 +7,7 @@ const DATA_FILE = path.join(PROJECT_ROOT, "data.json");
 const TRACKED_WORDS_FILE = path.join(PROJECT_ROOT, "tracked-words.json");
 const TIME_ZONE = "Australia/Brisbane";
 const DEFAULT_TRACKED_WORDS = ["Bombshell", "Shocking", "Explosive"];
+const MIN_TOTAL_WORDS_FOR_VALID_RUN = 100;
 
 const STOP_WORDS = new Set([
   "about", "after", "again", "against", "ago", "also", "and", "any", "are",
@@ -42,10 +43,10 @@ function decodeEntities(html) {
 }
 
 function extractVisibleHtml(html) {
+  const bodyMatch = html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
   const mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
   const articleMatch = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
-  const bodyMatch = html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
-  const source = mainMatch?.[1] ?? articleMatch?.[1] ?? bodyMatch?.[1] ?? html;
+  const source = bodyMatch?.[1] ?? mainMatch?.[1] ?? articleMatch?.[1] ?? html;
   return source
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/<(script|style|noscript|svg|template|iframe|canvas|form|nav|footer|aside|header)\b[\s\S]*?<\/\1>/gi, " ")
@@ -128,6 +129,15 @@ function rebuildAllTimeCounts(runs) {
   return Object.fromEntries(Object.entries(totals).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])));
 }
 
+function validateRun(run, sampleText) {
+  if (run.totalWords >= MIN_TOTAL_WORDS_FOR_VALID_RUN) return;
+  const sample = sampleText.trim().replace(/\s+/g, " ").slice(0, 160);
+  throw new Error(
+    `Refusing to publish suspicious scrape for ${run.date}: captured only ${run.totalWords} words, ` +
+    `which is below the ${MIN_TOTAL_WORDS_FOR_VALID_RUN}-word minimum. Sample: ${sample || "(empty)"}`
+  );
+}
+
 async function main() {
   const trackedWords = await readTrackedWords();
   const text = htmlToText(await loadSourceHtml());
@@ -143,6 +153,7 @@ async function main() {
     trackedCounts: countTrackedWords(text, trackedWords),
     wordCounts: Object.fromEntries(Object.entries(wordCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 250))
   };
+  validateRun(run, text);
   const runs = [...existing.runs.filter((item) => item.date !== date), run].sort((a, b) => a.date.localeCompare(b.date));
   await fs.writeFile(DATA_FILE, `${JSON.stringify({
     siteUrl: SITE_URL,
